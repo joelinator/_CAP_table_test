@@ -1,7 +1,9 @@
 # app/domain/use_cases.py
 from .entities import User, Shareholder, ShareIssuance, AuditEvent, Role
 from typing import List, Optional
-import hashlib  # For simple hashing, replace with bcrypt in production
+from .cache import *
+#import hashlib  # For simple hashing, replace with bcrypt in production
+import bcrypt
 
 class AuthenticateUser:
     def __init__(self, user_repo):
@@ -9,7 +11,7 @@ class AuthenticateUser:
 
     def execute(self, username: str, password: str) -> Optional[User]:
         user = self.user_repo.get_by_username(username)
-        if user and user.password_hash == hashlib.sha256(password.encode()).hexdigest():
+        if user and bcrypt.checkpw(password.encode(), user.password_hash.encode()):
             return user
         return None
 
@@ -19,8 +21,13 @@ class ListShareholders:
         self.issuance_repo = issuance_repo
 
     def execute(self) -> List[dict]:
+        cache_key = "shareholders_list"
+        cached = get_cache(cache_key)
+        if cached:
+            return cached
+
         shareholders = self.shareholder_repo.get_all()
-        return [
+        result = [
             {
                 "id": sh.id,
                 "name": sh.name,
@@ -29,6 +36,8 @@ class ListShareholders:
             }
             for sh in shareholders
         ]
+        set_cache(cache_key, result)
+        return result
 
 class CreateShareholder:
     def __init__(self, user_repo, shareholder_repo, audit_repo):
@@ -39,7 +48,8 @@ class CreateShareholder:
     def execute(self, name: str, email: str, username: str, password: str, current_user: User) -> Shareholder:
         if current_user.role != Role.ADMIN:
             raise PermissionError("Only admin can create shareholders")
-        user = User(username=username, password_hash=hashlib.sha256(password.encode()).hexdigest(), role=Role.SHAREHOLDER)
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()) 
+        user = User(username=username, password_hash=hashed.decode(), role=Role.SHAREHOLDER)
         user = self.user_repo.create(user)
         shareholder = Shareholder(user_id=user.id, name=name, email=email)
         shareholder = self.shareholder_repo.create(shareholder)
@@ -52,13 +62,19 @@ class ListIssuances:
         self.shareholder_repo = shareholder_repo
 
     def execute(self, current_user: User) -> List[ShareIssuance]:
+        cache_key = "issuances_list"
+        cached = get_cache(cache_key)
+        if cached:
+            return cached
         if current_user.role == Role.ADMIN:
-            return self.issuance_repo.get_all()
+            result =  self.issuance_repo.get_all()
         else:
             shareholder = self.shareholder_repo.get_by_user_id(current_user.id)
             if not shareholder:
                 raise ValueError("No shareholder profile")
-            return self.issuance_repo.get_by_shareholder(shareholder.id)
+            result =  self.issuance_repo.get_by_shareholder(shareholder.id)
+        set_cache(cache_key, result)
+        return result
 
 class CreateIssuance:
     def __init__(self, issuance_repo, shareholder_repo, audit_repo):

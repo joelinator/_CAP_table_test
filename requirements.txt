@@ -1,8 +1,13 @@
-fastapi
-uvicorn
-sqlalchemy
-psycopg2-binary
-pydantic
-pyjwt
-reportlab
-python-dotenv
+
+ fastapi
+ uvicorn
+ sqlalchemy
+ psycopg2-binary
+ pydantic
+ pyjwt
+ reportlab
+ python-dotenv
+ bcrypt  # For secure hashing
+ slowapi  # For rate limiting
+ redis  # For caching
+ python-jose[cryptography]  # For  JWT handling

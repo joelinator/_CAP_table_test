@@ -7,7 +7,14 @@ import os
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+        DATABASE_URL, 
+        pool_size=20,
+        max_overflow=5,
+        pool_timeout=30,
+        pool_recycle=1800
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 from ..adapters.repositories.base import Base
@@ -22,16 +29,20 @@ def get_db_session():
 
 # Seed data
 def seed_data():
+    if os.getenv("SEED_DATA") != "true":
+        return
     db = SessionLocal()
     # Check if users exist
     if db.query(UserModel).filter(UserModel.username == "admin").first() is None:
-        admin = UserModel(username="admin", password_hash=hashlib.sha256("adminpass".encode()).hexdigest(), role=Role.ADMIN)
+        admin_hash = bcrypt.hashpw("adminpass".encode(), bcrypt.gensalt()).decode()
+        admin = UserModel(username="admin", password_hash=admin_hash, role=Role.ADMIN)
         db.add(admin)
         db.commit()
         db.refresh(admin)
     
     if db.query(UserModel).filter(UserModel.username == "shareholder1").first() is None:
-        sh_user = UserModel(username="shareholder1", password_hash=hashlib.sha256("shpass".encode()).hexdigest(), role=Role.SHAREHOLDER)
+        sh_hash = bcrypt.hashpw("shpass".encode(), bcrypt.gensalt()).decode()
+        sh_user = UserModel(username="shareholder1", password_hash=sh_hash, role=Role.SHAREHOLDER)
         db.add(sh_user)
         db.commit()
         db.refresh(sh_user)
