@@ -28,9 +28,13 @@ from ...domain.entities import User, Role
 app = FastAPI()
 
 # CORS
+origins_env = os.environ.get("ALLOWED_ORIGINS", "").split(",")
+origins = [origin.strip() for origin in origins_env if origin.strip()]
+if not origins:
+    origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Adjust for frontend
+    allow_origins=origins,  # Adjust for frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,7 +45,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
-SECRET_KEY = os.getenv("JWT_SECRET", "fallback_secret_for_dev")  # Load from env
+SECRET_KEY = os.getenv("JWT_SECRET", "8x9SAXTJOd0Rf/Ti6uovOf9UUV+4CvJVgjN4SPWDsGY=")  # Load from env
 ALGORITHM = "HS256"
 ISSUER = "captable-app"
 AUDIENCE = "api-users"

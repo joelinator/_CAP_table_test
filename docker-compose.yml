@@ -1,0 +1,59 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Using a dynamic DATABASE_URL built from .env variables
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_HOST=${REDIS_HOST}
+      - SEED_DATA=${SEED_DATA}     depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+    networks:
+      - internal-network
+
+  db:
+    image: postgres:14
+    environment:
+      # Sourcing sensitive credentials from the .env file
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal-network
+
+  redis:
+    image: redis:7
+    networks:
+      - internal-network
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro # Mount SSL certs
+    depends_on:
+      - backend
+    # Nginx and the backend are on the same network to communicate
+    networks:
+      - internal-network
+
+volumes:
+  postgres_data:
+
+# Define a custom network for better isolation
+networks:
+  internal-network:
+    driver: bridge
