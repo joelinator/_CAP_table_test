@@ -107,8 +107,6 @@ def generate_pdf_certificate(shareholder: Shareholder, issuance: ShareIssuance) 
     c.setFillColor(BODY_TEXT_GRAY)
     c.drawRightString(width * 0.75, footer_y - 15, "Authorized Signature")
     
-    c.setFont("Helvetica", 8)
-    c.drawCentredString(width/2, 50, "This is a system-generated document. For more information, visit joelinator.org")
 
     # Save and return
     c.save()
