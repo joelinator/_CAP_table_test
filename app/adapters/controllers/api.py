@@ -53,7 +53,7 @@ ALGORITHM = "HS256"
 ISSUER = "captable-app"
 AUDIENCE = "api-users"
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 
 class Token(BaseModel):
     access_token: str
