@@ -1,7 +1,7 @@
 # app/adapters/controllers/api.py
 
 from fastapi import FastAPI,Request, Depends, HTTPException, Header, Response
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -55,6 +55,8 @@ AUDIENCE = "api-users"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 
+security = HTTPBearer()
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -81,7 +83,9 @@ def create_access_token(data: dict, expires_delta: timedelta):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db_session)) -> User:
+# Custom dependency for token validation
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db_session)) -> User:
+    token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_aud": True}, audience=AUDIENCE, issuer=ISSUER)
         username: str = payload.get("sub")
@@ -90,7 +94,6 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token has expired")
     except JWTError as e:
-        # Handle audience errors or other JWT issues
         error_msg = str(e).lower()
         if "audience" in error_msg:
             raise HTTPException(status_code=401, detail="Invalid audience in token")
