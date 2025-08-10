@@ -138,8 +138,8 @@ This is the recommended approach as it sets up a fully isolated environment with
 
 1.  **Clone the Repository**:
     ```bash
-    git clone <repository-url>
-    cd <repository-directory>
+    git clone https://github.com/joelinator/_CAP_table_test.git
+    cd https://github.com/joelinator/_CAP_table_test.git
     ```
 2.  **Set Up Environment Variables**:
     Create a `.env` file in the root directory with at least a secure `JWT_SECRET`. Other variables like `DATABASE_URL` are configured within the `docker-compose.yml` file.
