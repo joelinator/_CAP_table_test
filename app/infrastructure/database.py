@@ -2,14 +2,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-
 from ..adapters.repositories.base import UserModel, ShareholderModel
 from ..domain.entities import Role
 import bcrypt
 import os
 
 load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL:str = os.getenv("DATABASE_URL")
 
 engine = create_engine(
         DATABASE_URL, 
