@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project implements a robust backend for a Corporate OS platform, focused on managing a company's **capitalization table (Cap Table)** and issuing shares.  The backend is built with **FastAPI**, leveraging its asynchronous capabilities and automatic API documentation. It adheres to the **Clean Architecture** principle to ensure a strong separation of concerns, promoting **maintainability, testability, and extensibility**.
+This project implements a robust backend for a Corporate OS platform, focused on managing a company's **capitalization table (Cap Table)** and issuing shares. The backend is built with **FastAPI**, leveraging its asynchronous capabilities and automatic API documentation. It adheres to the **Clean Architecture** principle to ensure a strong separation of concerns, promoting **maintainability, testability, and extensibility**.
 
 ### Key Architectural Decisions 🏗️
 
@@ -23,97 +23,145 @@ This project implements a robust backend for a Corporate OS platform, focused on
 
 Before setting up the project, ensure you have the following installed.
 
-  * **Python 3.10+** (for non-Docker setup)
+  * **Python 3.10+**
   * **PostgreSQL 14+**
   * **Redis 7+** (Optional but recommended for caching)
-  * **Docker** and **Docker Compose** (Recommended for the containerized setup)
   * **Git**
+  * **Docker** and **Docker Compose** (Recommended for the containerized setup)
 
 -----
 
 ## Setup and Run Locally
 
-You have two options for running the application: a direct local setup or the recommended Dockerized setup.
+You have three options for running the application: a direct local setup using scripts, a manual local setup, or the recommended Dockerized setup.
 
-### Option 1: Without Docker (Direct Local Setup)
+### Option 1: Automated Local Setup with Scripts (Recommended)
 
-This option requires you to have PostgreSQL and Redis running directly on your machine.
+This is the fastest way to get the application running on your local machine. The provided scripts automate most of the setup process.
 
 1.  **Clone the Repository**:
-
     ```bash
     git clone https://github.com/joelinator/_CAP_table_test.git
     cd _CAP_table_test
     ```
-
-2.  **Create and Activate a Virtual Environment**:
-
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
-    ```
-
-3.  **Install Dependencies**:
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Set Up Environment Variables**:
-    Create a `.env` file in the root directory by copying the provided `.env.example` file. You must set the following variables:
-
-    ```ini
-    DATABASE_URL=postgresql://user:password@localhost:5432/captable_db
-    JWT_SECRET=your_strong_random_secret_key_here
-    REDIS_HOST=localhost
-    # By default, SEED_DATA is set to 'true' to add initial users.
-    SEED_DATA=true
-    ```
-
-    🚨 **Important:** The `SEED_DATA=true` setting is enabled by default for easy local testing. This automatically creates an admin user and a sample shareholder. Remember to set this to `false` in any production environment.
-
-5.  **Set Up PostgreSQL and Redis**:
-
-      * **PostgreSQL**: Create the database by running `createdb captable_db`. The application will automatically create all necessary tables on startup.
-      * **Redis**: Ensure Redis is running on the default port `6379`.
-
-6.  **Run the Application**:
-
-    ```bash
-    python app/main.py
-    ```
-
-      * The API will be available at `http://localhost:8000`.
-      * To access the API documentation, visit `http://localhost:8000/docs`.
-      * **Default Seeded Credentials** (if `SEED_DATA` is true):
-          * **Admin**: username `admin`, password `adminpass`
-          * **Shareholder**: username `shareholder1`, password `shpass`
+2.  **Configure Environment Variables**:
+      * Create a `.env` file by copying the provided `.env.example` file:
+        ```bash
+        cp .env.example .env
+        ```
+      * Open the new `.env` file and fill in your database credentials and a secure `JWT_SECRET`. The script uses these variables to create the `DATABASE_URL` and connect to your database.
+        ```ini
+        DB_USER=your_postgres_username
+        DB_PASSWORD=your_postgres_password
+        DB_NAME=captable_db
+        JWT_SECRET=a_super_secret_key
+        REDIS_HOST=localhost # Optional, but required if you use Redis
+        ```
+3.  **Ensure Services Are Running**:
+      * **PostgreSQL**: Make sure your PostgreSQL server is running.
+      * **Redis**: If you plan to use caching, ensure your Redis server is running as well.
+4.  **Run the Script**:
+      * **On macOS/Linux**, use the bash script `script.sh`:
+        ```bash
+        chmod +x script.sh
+        ./script.sh
+        ```
+      * **On Windows**, use the batch script `script.bat`:
+        ```bat
+        script.bat
+        ```
+    The script will create a virtual environment, install dependencies, create the PostgreSQL database (if it doesn't exist), and then start the application automatically.
 
 -----
 
-### Option 2: With Docker (Recommended for Isolation and Scalability)
+### Option 2: Without Scripts (Manual Local Setup)
+
+This option requires you to have PostgreSQL and Redis running directly on your machine.
+
+1.  **Clone the Repository and Navigate to the Project Directory**:
+    ```bash
+    git clone https://github.com/joelinator/_CAP_table_test.git
+    cd _CAP_table_test
+    ```
+2.  **Create and Activate a Virtual Environment**:
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate.bat
+    ```
+3.  **Install Dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    pip install python-dotenv
+    ```
+4.  **Configure Environment Variables**:
+      * Create a `.env` file by copying the provided `.env.example` file:
+        ```bash
+        cp .env.example .env
+        ```
+      * Open `.env` and fill in your database credentials and a secure `JWT_SECRET`. A new `DATABASE_URL` will be created from the provided variables. For example:
+        ```ini
+        DB_USER=your_postgres_username
+        DB_PASSWORD=your_postgres_password
+        DB_NAME=captable_db
+        JWT_SECRET=a_super_secret_key
+        REDIS_HOST=localhost # Optional
+        ```
+5.  **Set Up PostgreSQL and Redis**:
+      * **PostgreSQL**: Ensure your PostgreSQL server is running, and create the database specified in your `.env` file. The application will automatically create all necessary tables on startup.
+        ```bash
+        psql -c "CREATE DATABASE captable_db"
+        ```
+      * **Redis**: If you're using Redis for caching, ensure it is running on the default port `6379`.
+6.  **Run the Application**:
+      * Set the **`DATABASE_URL`** environment variable in your terminal session. Replace the credentials with your own:
+        ```bash
+        export DATABASE_URL="postgresql://your_postgres_username:your_postgres_password@localhost/captable_db"
+        ```
+      * Run the application using the `dotenv` command to load all environment variables:
+        ```bash
+        dotenv run -- uvicorn app.main:app --host "0.0.0.0" --port 8000 --workers 4
+        ```
+      * Alternatively, you can manually set all environment variables and then run the application:
+        ```bash
+        # (Example for bash/zsh)
+        export DB_USER=your_postgres_username
+        export DB_PASSWORD=your_postgres_password
+        # ... and so on for all variables in .env
+        uvicorn app.main:app --host "0.0.0.0" --port 8000 --workers 4
+        ```
+
+-----
+
+### Option 3: With Docker (Recommended for Isolation and Scalability)
 
 This is the recommended approach as it sets up a fully isolated environment with PostgreSQL, Redis, and an Nginx proxy.
 
 1.  **Clone the Repository**:
-
     ```bash
     git clone <repository-url>
     cd <repository-directory>
     ```
-
 2.  **Set Up Environment Variables**:
     Create a `.env` file in the root directory with at least a secure `JWT_SECRET`. Other variables like `DATABASE_URL` are configured within the `docker-compose.yml` file.
-
 3.  **Build and Run**:
-
     ```bash
     docker-compose up --build
     ```
-
       * This command orchestrates the startup of the backend, PostgreSQL, Redis, and Nginx containers.
       * The API will be accessible via **Nginx** at `http://localhost:8000`.
       * To stop the services, run `docker-compose down`.
+
+-----
+
+## Accessing the Application
+
+Once the application is running, you can access it as follows:
+
+  * **API URL**: `http://localhost:8000`
+  * **API Docs**: `http://localhost:8000/docs`
+  * **Default Seeded Credentials** (if `SEED_DATA` is true):
+      * **Admin**: username `admin`, password `adminpass`
+      * **Shareholder**: username `shareholder1`, password `shpass`
 
 -----
 
