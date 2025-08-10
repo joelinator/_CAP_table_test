@@ -171,7 +171,12 @@ def create_issuance(request: Request, data: IssuanceCreate, current_user: User =
     sh_repo = ShareholderRepository(db)
     audit_repo = AuditRepository(db)
     use_case = CreateIssuance(iss_repo, sh_repo, audit_repo)
-    return use_case.execute(data.shareholder_id, data.number_of_shares, data.price, current_user)
+    try:
+        return use_case.execute(data.shareholder_id, data.number_of_shares, data.price, current_user)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 
 @app.get("/api/issuances/{issuance_id}/certificate/", response_class=Response)
@@ -181,9 +186,13 @@ def get_certificate(request: Request, issuance_id: int, current_user: User = Dep
     iss_repo = IssuanceRepository(db)
     sh_repo = ShareholderRepository(db)
     use_case = GenerateCertificate(iss_repo, sh_repo)
-    pdf_bytes = use_case.execute(issuance_id, current_user)
-    return Response(content=pdf_bytes, media_type="application/pdf")
-
+    try:
+        pdf_bytes = use_case.execute(issuance_id, current_user)
+        return Response(content=pdf_bytes, media_type="application/pdf",headers={"Content-Disposition": f"attachment; filename=certificate_{issuance_id}.pdf"})
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 # Bonus: Audit log endpoint
 @app.get("/api/audits/")

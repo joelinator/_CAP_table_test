@@ -130,6 +130,9 @@ class CreateIssuance:
             raise PermissionError("Only admin can issue shares")
         if number_of_shares <= 0:
             raise ValueError("Number of shares must be positive")
+        if price <= 0:
+            raise ValueError("Price must be positive")
+
         shareholder = self.shareholder_repo.get_by_id(shareholder_id)
         if not shareholder:
             raise ValueError("Shareholder not found")

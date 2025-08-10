@@ -5,7 +5,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import inch
 from io import BytesIO
 from datetime import datetime
-from ...domain.entities import Shareholder, ShareIssuance
+from ..domain.entities import Shareholder, ShareIssuance
 
 def generate_pdf_certificate(shareholder: Shareholder, issuance: ShareIssuance) -> bytes:
     buffer = BytesIO()
