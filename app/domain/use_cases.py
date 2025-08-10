@@ -1,7 +1,7 @@
 # app/domain/use_cases.py
 from .entities import User, Shareholder, ShareIssuance, AuditEvent, Role
 from typing import List, Optional
-from ..infrastructure.cache import set_cache, get_cache 
+from ..infrastructure.cache import set_cache, get_cache , delete_cache
 #import hashlib  # For simple hashing, replace with bcrypt in production
 import bcrypt
 
@@ -64,6 +64,9 @@ class CreateShareholder:
         shareholder = Shareholder(user_id=user.id, name=name, email=email)
         shareholder = self.shareholder_repo.create(shareholder)
         self.audit_repo.create(AuditEvent(action="create_shareholder", user_id=current_user.id, details=f"Created shareholder {shareholder.id}"))
+
+        #invalidate cache
+        delete_cache("shareholders_list")
         return shareholder
 
 class ListIssuances:
@@ -122,6 +125,7 @@ class CreateIssuance:
         self.audit_repo = audit_repo
 
     def execute(self, shareholder_id: int, number_of_shares: int, price: float, current_user: User) -> ShareIssuance:
+
         if current_user.role != Role.ADMIN:
             raise PermissionError("Only admin can issue shares")
         if number_of_shares <= 0:
@@ -129,11 +133,18 @@ class CreateIssuance:
         shareholder = self.shareholder_repo.get_by_id(shareholder_id)
         if not shareholder:
             raise ValueError("Shareholder not found")
+
         issuance = ShareIssuance(shareholder_id=shareholder_id, number_of_shares=number_of_shares, price=price)
         issuance = self.issuance_repo.create(issuance)
         self.audit_repo.create(AuditEvent(action="issue_shares", user_id=current_user.id, details=f"Issued {number_of_shares} shares to {shareholder_id}"))
+
         # Simulate email
         print(f"Simulating email to {shareholder.email}: Shares issued!")
+
+        #invalidate cache
+        delete_cache("shareholders_list")  # Total shares changed
+        delete_cache("issuances_list_admin")  # Admin issuances list
+        delete_cache(f"issuances_list_{shareholder.user_id}")  # Specific shareholder's issuances list
         return issuance
 
 class GenerateCertificate:

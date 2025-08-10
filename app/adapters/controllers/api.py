@@ -27,6 +27,7 @@ from datetime import datetime, timedelta
 
 from ...domain.entities import User, Role
 
+
 app = FastAPI()
 
 # CORS
