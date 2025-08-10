@@ -42,8 +42,8 @@ This option requires you to have PostgreSQL and Redis running directly on your m
 1.  **Clone the Repository**:
 
     ```bash
-    git clone <repository-url>
-    cd <repository-directory>
+    git clone https://github.com/joelinator/_CAP_table_test.git
+    cd _CAP_table_test
     ```
 
 2.  **Create and Activate a Virtual Environment**:
