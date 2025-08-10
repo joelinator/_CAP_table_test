@@ -61,14 +61,14 @@ This is the fastest way to get the application running on your local machine. Th
       * **PostgreSQL**: Make sure your PostgreSQL server is running.
       * **Redis**: If you plan to use caching, ensure your Redis server is running as well.
 4.  **Run the Script**:
-      * **On macOS/Linux**, use the bash script `script.sh`:
+      * **On macOS/Linux**, use the bash script `run_app.sh`:
         ```bash
-        chmod +x script.sh
-        ./script.sh
+        chmod +x run_app.sh
+        ./run_app.sh
         ```
-      * **On Windows**, use the batch script `script.bat`:
+      * **On Windows**, use the batch script `run_app.bat`:
         ```bat
-        script.bat
+        run_app.bat
         ```
     The script will create a virtual environment, install dependencies, create the PostgreSQL database (if it doesn't exist), and then start the application automatically.
 
