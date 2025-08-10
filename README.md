@@ -1,7 +1,3 @@
-I will improve the provided `README.md` file by updating it for clarity, better organization, and improved highlighting of key information.
-
-Here is the updated and improved `README.md` file.
-
 # Cap Table Management Backend
 
 ## Overview
