@@ -1,5 +1,5 @@
 # app/domain/entities.py
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
@@ -25,11 +25,11 @@ class ShareIssuance(BaseModel):
     shareholder_id: int
     number_of_shares: int
     price: float
-    date: datetime = datetime.utcnow()
+    date: datetime = datetime.now(timezone.utc)
 
 class AuditEvent(BaseModel):
     id: Optional[int] = None
     action: str
-    timestamp: datetime = datetime.utcnow()
+    timestamp: datetime = datetime.now(timezone.utc)
     user_id: int
     details: Optional[str] = None

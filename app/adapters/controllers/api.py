@@ -23,7 +23,7 @@ from ...adapters.repositories.audit_repository import AuditRepository
 from ...infrastructure.database import get_db_session
 
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from ...domain.entities import User, Role
 
@@ -78,7 +78,7 @@ class IssuanceCreate(BaseModel):
 
 def create_access_token(data: dict, expires_delta: timedelta):
     to_encode = data.copy()
-    expire = datetime.utcnow() + expires_delta
+    expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire, "iss": ISSUER, "aud": AUDIENCE})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
