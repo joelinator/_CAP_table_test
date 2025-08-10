@@ -3,6 +3,8 @@ from ...domain.entities import User
 from .base import UserModel, Base
 from sqlalchemy.orm import Session
 
+from typing import Optional
+
 class UserRepository:
     def __init__(self, session: Session):
         self.session = session

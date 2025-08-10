@@ -4,6 +4,8 @@ from .base import ShareIssuanceModel
 from sqlalchemy.orm import Session
 from datetime import datetime
 
+from typing import List, Optional
+
 class IssuanceRepository:
     def __init__(self, session: Session):
         self.session = session
@@ -15,7 +17,7 @@ class IssuanceRepository:
     def get_by_id(self, iss_id: int) -> Optional[ShareIssuance]:
         model = self.session.query(ShareIssuanceModel).filter(ShareIssuanceModel.id == iss_id).first()
         if model:
-            return ShareIssuance(id=model.id, shareholder_id=model.shareholder_id, number_of_shares=m.number_of_shares, price=m.price, date=m.date)
+            return ShareIssuance(id=model.id, shareholder_id=model.shareholder_id, number_of_shares=model.number_of_shares, price=model.price, date=model.date)
         return None
 
     def get_by_shareholder(self, sh_id: int) -> List[ShareIssuance]:

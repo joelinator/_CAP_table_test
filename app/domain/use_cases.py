@@ -1,7 +1,7 @@
 # app/domain/use_cases.py
 from .entities import User, Shareholder, ShareIssuance, AuditEvent, Role
 from typing import List, Optional
-from .cache import *
+from ..infrastructure.cache import set_cache, get_cache 
 #import hashlib  # For simple hashing, replace with bcrypt in production
 import bcrypt
 
@@ -48,6 +48,16 @@ class CreateShareholder:
     def execute(self, name: str, email: str, username: str, password: str, current_user: User) -> Shareholder:
         if current_user.role != Role.ADMIN:
             raise PermissionError("Only admin can create shareholders")
+
+        # Check for existing username
+        if self.user_repo.get_by_username(username):
+            raise ValueError(f"Username '{username}' is already taken")
+
+        # Check for existing email
+        if self.shareholder_repo.get_by_email(email):
+            raise ValueError(f"Email '{email}' is already in use")
+
+
         hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()) 
         user = User(username=username, password_hash=hashed.decode(), role=Role.SHAREHOLDER)
         user = self.user_repo.create(user)
@@ -61,19 +71,48 @@ class ListIssuances:
         self.issuance_repo = issuance_repo
         self.shareholder_repo = shareholder_repo
 
-    def execute(self, current_user: User) -> List[ShareIssuance]:
-        cache_key = "issuances_list"
+    def execute(self, current_user: User) -> List[dict]:
+        # Use distinct cache keys for admin and shareholders
+        cache_key = f"issuances_list_{'admin' if current_user.role == Role.ADMIN else current_user.id}"
         cached = get_cache(cache_key)
         if cached:
             return cached
+
         if current_user.role == Role.ADMIN:
-            result =  self.issuance_repo.get_all()
+            # Admin sees all issuances with shareholder details
+            issuances = self.issuance_repo.get_all()
+            result = []
+            for issuance in issuances:
+                shareholder = self.shareholder_repo.get_by_id(issuance.shareholder_id)
+                result.append({
+                    "issuance_id": issuance.id,
+                    "date": issuance.date.isoformat(),
+                    "price": issuance.price,
+                    "number_of_shares": issuance.number_of_shares,
+                    "shareholder_id": shareholder.id if shareholder else None,
+                    "shareholder_name": shareholder.name if shareholder else "Unknown",
+                    "shareholder_email": shareholder.email if shareholder else "Unknown"
+                })
         else:
+            # Shareholder sees only their own issuances
             shareholder = self.shareholder_repo.get_by_user_id(current_user.id)
             if not shareholder:
                 raise ValueError("No shareholder profile")
-            result =  self.issuance_repo.get_by_shareholder(shareholder.id)
-        set_cache(cache_key, result)
+            issuances = self.issuance_repo.get_by_shareholder(shareholder.id)
+            result = [
+                {
+                    "issuance_id": iss.id,
+                    "date": iss.date.isoformat(),
+                    "price": iss.price,
+                    "number_of_shares": iss.number_of_shares,
+                    "shareholder_id": shareholder.id,
+                    "shareholder_name": shareholder.name,
+                    "shareholder_email": shareholder.email
+                } for iss in issuances
+            ]
+        
+        # Cache the result for 5 minutes
+        set_cache(cache_key, result, ttl=300)
         return result
 
 class CreateIssuance:

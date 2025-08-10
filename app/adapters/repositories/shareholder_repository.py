@@ -3,6 +3,8 @@ from ...domain.entities import Shareholder
 from .base import ShareholderModel
 from sqlalchemy.orm import Session
 
+from typing import List, Optional
+
 class ShareholderRepository:
     def __init__(self, session: Session):
         self.session = session
@@ -21,6 +23,12 @@ class ShareholderRepository:
         model = self.session.query(ShareholderModel).filter(ShareholderModel.user_id == user_id).first()
         if model:
             return Shareholder(id=model.id, user_id=model.user_id, name=model.name, email=model.email)
+        return None
+
+    def get_by_email(self, email: str) -> Optional[Shareholder]:
+        model = self.session.query(ShareholderModel).filter(ShareholderModel.email == email).first()
+        if model:
+            return Shareholder(id=model.id, user_id=m.user_id, name=m.name, email=m.email)
         return None
 
     def create(self, shareholder: Shareholder) -> Shareholder:

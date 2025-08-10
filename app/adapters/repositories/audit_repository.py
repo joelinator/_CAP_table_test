@@ -3,6 +3,8 @@ from ...domain.entities import AuditEvent
 from .base import AuditEventModel
 from sqlalchemy.orm import Session
 
+from typing import List, Optional
+
 class AuditRepository:
     def __init__(self, session: Session):
         self.session = session

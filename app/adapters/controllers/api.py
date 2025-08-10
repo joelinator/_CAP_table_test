@@ -1,6 +1,6 @@
 # app/adapters/controllers/api.py
 
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI,Request, Depends, HTTPException, Header, Response
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,16 +8,18 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import os
-from jose import JWTError, jwt  # Use python-jose for better handling
+from jose import JWTError, jwt, ExpiredSignatureError  # Use python-jose for better handling
 
 from pydantic import BaseModel
 from typing import Optional
 from ...domain.use_cases import AuthenticateUser, ListShareholders, CreateShareholder, ListIssuances, CreateIssuance, GenerateCertificate
 
+from ...domain.entities import AuditEvent
 from ...adapters.repositories.user_repository import UserRepository
 from ...adapters.repositories.shareholder_repository import ShareholderRepository
 from ...adapters.repositories.issuance_repository import IssuanceRepository
 from ...adapters.repositories.audit_repository import AuditRepository
+
 from ...infrastructure.database import get_db_session
 
 from sqlalchemy.orm import Session
@@ -78,14 +80,20 @@ def create_access_token(data: dict, expires_delta: timedelta):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db_session), credentials_exception = HTTPException(status_code=401, detail="Could not validate credentials"):
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db_session)) -> User:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_aud": True}, audience=AUDIENCE, issuer=ISSUER)
         username: str = payload.get("sub")
         if username is None:
-            raise credentials_exception 
-    except jwt.PyJWTError:
-        raise credentials_exception
+            raise HTTPException(status_code=401, detail="Invalid token: missing subject claim")
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except JWTError as e:
+        # Handle audience errors or other JWT issues
+        error_msg = str(e).lower()
+        if "audience" in error_msg:
+            raise HTTPException(status_code=401, detail="Invalid audience in token")
+        raise HTTPException(status_code=401, detail=f"Could not validate credentials: {str(e)}")
     user_repo = UserRepository(db)
     user = user_repo.get_by_username(username)
     if user is None:
@@ -95,7 +103,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 @app.post("/api/token/", response_model=Token)
 @limiter.limit("5/minutes") # 5 logins per minute per IP
-def login(login: Login, request: Request, db: Session = Depends(get_db_session)):
+def login(login: Login,request: Request, db: Session = Depends(get_db_session)):
     
     user_repo = UserRepository(db)
     auth_use_case = AuthenticateUser(user_repo)
@@ -116,7 +124,7 @@ def login(login: Login, request: Request, db: Session = Depends(get_db_session))
 
 @app.get("/api/shareholders/")
 @limiter.limit("10/minute")
-def list_shareholders(current_user: User = Depends(get_current_user), db: Session = Depends(get_db_session)):
+def list_shareholders(request:Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db_session)):
 
     if current_user.role != Role.ADMIN:
         raise HTTPException(status_code=403, detail="Admin only")
@@ -128,18 +136,23 @@ def list_shareholders(current_user: User = Depends(get_current_user), db: Sessio
 
 @app.post("/api/shareholders/")
 @limiter.limit("10/minute")
-def create_shareholder(data: ShareholderCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db_session)):
-
+def create_shareholder(request: Request, data: ShareholderCreate, current_user: User = Depends(get_current_user),  db: Session = Depends(get_db_session)):
     user_repo = UserRepository(db)
     sh_repo = ShareholderRepository(db)
     audit_repo = AuditRepository(db)
     use_case = CreateShareholder(user_repo, sh_repo, audit_repo)
-    return use_case.execute(data.name, data.email, data.username, data.password, current_user)
+    try:
+        return use_case.execute(data.name, data.email, data.username, data.password, current_user)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
 
 
 @app.get("/api/issuances/")
 @limiter.limit("10/minute")
-def list_issuances(current_user: User = Depends(get_current_user), db: Session = Depends(get_db_session)):
+def list_issuances(request: Request, current_user: User = Depends(get_current_user),   db: Session = Depends(get_db_session)):
     iss_repo = IssuanceRepository(db)
     sh_repo = ShareholderRepository(db)
     use_case = ListIssuances(iss_repo, sh_repo)
@@ -148,7 +161,7 @@ def list_issuances(current_user: User = Depends(get_current_user), db: Session =
 
 @app.post("/api/issuances/")
 @limiter.limit("10/minute")
-def create_issuance(data: IssuanceCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db_session)):
+def create_issuance(request: Request, data: IssuanceCreate, current_user: User = Depends(get_current_user),  db: Session = Depends(get_db_session)):
 
     iss_repo = IssuanceRepository(db)
     sh_repo = ShareholderRepository(db)
@@ -159,7 +172,7 @@ def create_issuance(data: IssuanceCreate, current_user: User = Depends(get_curre
 
 @app.get("/api/issuances/{issuance_id}/certificate/", response_class=Response)
 @limiter.limit("10/minute")
-def get_certificate(issuance_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db_session)):
+def get_certificate(request: Request, issuance_id: int, current_user: User = Depends(get_current_user),  db: Session = Depends(get_db_session)):
 
     iss_repo = IssuanceRepository(db)
     sh_repo = ShareholderRepository(db)
@@ -171,7 +184,7 @@ def get_certificate(issuance_id: int, current_user: User = Depends(get_current_u
 # Bonus: Audit log endpoint
 @app.get("/api/audits/")
 @limiter.limit("10/minute")
-def list_audits(current_user: User = Depends(get_current_user), db: Session = Depends(get_db_session)):
+def list_audits(request: Request, current_user: User = Depends(get_current_user),  db: Session = Depends(get_db_session)):
 
     if current_user.role != Role.ADMIN:
         raise HTTPException(status_code=403, detail="Admin only")

@@ -3,7 +3,7 @@
 
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
-from ...infrastructure.database import get_db_session  # Will define later
+#from ...infrastructure.database import get_db_session  # Will define later
 from ...domain.entities import Role
 
 Base = declarative_base()
