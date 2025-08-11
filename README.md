@@ -170,9 +170,6 @@ Once the application is running, you can access it as follows:
 This project was developed with significant assistance from the following AI tools:
 
   * **GitHub Copilot**: Used for code completions and contextual suggestions.
-  * **Cursor's Chat**: Aided in generating boilerplate code and debugging complex issues.
-  * **Gemini Advanced**: Provided crucial architectural advice on implementing Clean Architecture and ensuring security best practices.
-
 -----
 
 ## Key Prompts Used 🗣️
