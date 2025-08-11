@@ -170,6 +170,7 @@ Once the application is running, you can access it as follows:
 This project was developed with significant assistance from the following AI tools:
 
   * **GitHub Copilot**: Used for code completions and contextual suggestions.
+  * **Gemini**: Used to generate the initial code
 -----
 
 ## Key Prompts Used 🗣️
